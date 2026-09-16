@@ -1,0 +1,21 @@
+core/src/compaction/mod.rs
+  s_51fcea61a52934::t_dfdb03ec0f12b8 1454,1456,1459-1465,1482,2157-2340
+core/src/executor/datafusion/datafusion_processor.rs
+  s_51fcea61a52934::t_23cf022826cd16 35,861-868,874,909-917
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "82443f07b9ffdb941cc945d49caaa9bace552c97",
+  "prompts": {},
+  "sessions": {
+    "s_51fcea61a52934": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f5a56e15dffeHzeNiFxCq0c5C5",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Adam Gaddis <adamtyler@cloudflare.com>"
+    }
+  }
+}
