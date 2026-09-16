@@ -1,0 +1,19 @@
+Cargo.lock
+  s_51fcea61a52934::t_74eea20bdb9d8c 2918,2977,2992,3078,3094
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "c9664bb7213ce42bc94ee738415fab763bc5db78",
+  "prompts": {},
+  "sessions": {
+    "s_51fcea61a52934": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f5a56e15dffeHzeNiFxCq0c5C5",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Adam Gaddis <adamtyler@cloudflare.com>"
+    }
+  }
+}
