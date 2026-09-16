@@ -1,0 +1,19 @@
+.gitlab-ci.yml
+  s_489fded425e415::t_c13c6406b846e0 1-2,4-5,7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "7c6f8dc28209d08fb68e7677ed2ce263e5391592",
+  "prompts": {},
+  "sessions": {
+    "s_489fded425e415": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f5b9f9ebbffeQoNAuNgL3hPG7y",
+        "model": "claude-opus-5"
+      },
+      "human_author": "volodymyr <volodymyr@cloudflare.com>"
+    }
+  }
+}
