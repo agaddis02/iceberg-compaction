@@ -11,11 +11,14 @@
 - **Selective or full compaction:** choose small files, files with many associated delete files, their union, or all eligible data files.
 - **File grouping:** use a single group or bin-packing, within each partition or across the table, with optional minimum group size and file-count filters.
 - **Delete handling:** apply equality and position deletes when rewriting data, including the Iceberg v3 deletion-vector read path.
+- **Iceberg v3 row lineage:** preserve `_row_id` and `_last_updated_sequence_number` when rewriting data files.
 - **Partitioning and sorting:** write to the table's current partition spec and sort order. Sort fields currently support identity transforms only.
 - **Execution controls:** configure read/write parallelism, concurrent plans, target file size, Parquet writer properties, and an optional shared DataFusion memory budget with disk spilling.
 - **Commit and visibility:** commit replacement files in one Iceberg transaction, target a branch, retry supported commit failures with exponential backoff, and collect file/byte statistics and metrics.
 
 The core crate is [`iceberg-compaction-core`](./core/). Catalog and storage access use the pinned [RisingWave fork of `iceberg-rust`](https://github.com/risingwavelabs/iceberg-rust); the repository includes local-filesystem and REST-catalog/S3 examples. See [Cargo.toml](./Cargo.toml) for the exact dependency revisions and enabled storage features.
+
+AI assisted with research and drafting.
 
 ## Quick start
 

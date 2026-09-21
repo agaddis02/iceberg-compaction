@@ -32,6 +32,7 @@ use datafusion::physical_plan::{
 use datafusion::prelude::{SessionConfig, SessionContext};
 use iceberg::arrow::schema_to_arrow_schema;
 use iceberg::io::FileIO;
+use iceberg::metadata_columns::{last_updated_sequence_number_field, row_id_field};
 use iceberg::scan::FileScanTask;
 use iceberg::spec::{
     DataContentType, FormatVersion, NestedField, PartitionSpecRef, PrimitiveType, Schema,
@@ -857,11 +858,20 @@ impl DataFusionTaskContextBuilder {
         let need_seq_num = !equality_delete_metadatas.is_empty();
 
         // Build schema for data file, old schema + seq_num + file_path + pos
+        let row_lineage_fields = if ge_v3_format {
+            vec![
+                row_id_field().clone(),
+                last_updated_sequence_number_field().clone(),
+            ]
+        } else {
+            Vec::new()
+        };
         let project_names: Vec<_> = self
             .schema
             .as_struct()
             .fields()
             .iter()
+            .chain(row_lineage_fields.iter())
             .map(|i| i.name.clone())
             .collect();
         let highest_field_id = self.schema.highest_field_id();
@@ -896,10 +906,16 @@ impl DataFusionTaskContextBuilder {
             .as_ref()
             .clone()
             .into_builder()
-            .with_fields(add_schema_fields)
+            .with_fields(row_lineage_fields.iter().cloned().chain(add_schema_fields))
             .build()?;
-        // input schema is old schema. used for data file writer
-        let input_schema = self.schema.as_ref().clone();
+        // This schema is passed to the data file writer, which stores lineage for V3 rewrites.
+        let input_schema = self
+            .schema
+            .as_ref()
+            .clone()
+            .into_builder()
+            .with_fields(row_lineage_fields)
+            .build()?;
 
         let sql_builder = SqlBuilder::new(
             &project_names,

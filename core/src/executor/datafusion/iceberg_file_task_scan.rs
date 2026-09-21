@@ -21,8 +21,8 @@ use std::vec;
 
 use async_stream::try_stream;
 use datafusion::arrow::array::{Int64Array, RecordBatch, StringArray};
-use datafusion::arrow::compute::concat_batches;
-use datafusion::arrow::datatypes::{Field, Schema, SchemaRef as ArrowSchemaRef};
+use datafusion::arrow::compute::{cast, concat_batches};
+use datafusion::arrow::datatypes::{DataType, Field, Schema, SchemaRef as ArrowSchemaRef};
 use datafusion::error::{DataFusionError, Result as DFResult};
 use datafusion::execution::memory_pool::{MemoryConsumer, MemoryPool, MemoryReservation};
 use datafusion::execution::{SendableRecordBatchStream, TaskContext};
@@ -36,7 +36,9 @@ use iceberg::arrow::ArrowReaderBuilder;
 use iceberg::expr::Predicate;
 use iceberg::io::FileIO;
 use iceberg::metadata_columns::{
+    RESERVED_COL_NAME_LAST_UPDATED_SEQUENCE_NUMBER, RESERVED_COL_NAME_ROW_ID,
     RESERVED_FIELD_ID_DELETE_FILE_PATH, RESERVED_FIELD_ID_DELETE_FILE_POS,
+    RESERVED_FIELD_ID_LAST_UPDATED_SEQUENCE_NUMBER, RESERVED_FIELD_ID_ROW_ID,
 };
 use iceberg::scan::FileScanTask;
 use iceberg::spec::DataContentType;
@@ -191,9 +193,18 @@ impl IcebergFileTaskScan {
                             (DataContentType::PositionDeletes, SYS_HIDDEN_POS) => {
                                 Some(RESERVED_FIELD_ID_DELETE_FILE_POS)
                             }
+                            (DataContentType::Data, RESERVED_COL_NAME_ROW_ID) => {
+                                Some(RESERVED_FIELD_ID_ROW_ID)
+                            }
+                            (
+                                DataContentType::Data,
+                                RESERVED_COL_NAME_LAST_UPDATED_SEQUENCE_NUMBER,
+                            ) => Some(RESERVED_FIELD_ID_LAST_UPDATED_SEQUENCE_NUMBER),
                             _ => task.schema().field_id_by_name(name),
                         })
                         .collect::<Vec<_>>();
+                    // Metadata IDs are intentionally absent from the table schema. ArrowReader
+                    // resolves them through iceberg::metadata_columns while processing the task.
                     let new_schema = iceberg::spec::Schema::builder()
                         .with_fields(
                             project_field_ids
@@ -455,6 +466,7 @@ async fn get_batch_stream(
                 let mut batch = batch.map_err(to_datafusion_error)?;
                 let batch = match file_context.data_file_content {
                     DataContentType::Data => {
+                        batch = normalize_row_lineage_columns(batch)?;
                         // add sequence number if needed
                         if need_seq_num {
                             batch = add_seq_num_into_batch(batch, file_context.sequence_number)?;
@@ -490,6 +502,48 @@ async fn get_batch_stream(
     };
 
     Ok(Box::pin(stream))
+}
+
+fn normalize_row_lineage_columns(batch: RecordBatch) -> DFResult<RecordBatch> {
+    let schema = batch.schema();
+    let is_lineage_column = |name: &str| {
+        [
+            RESERVED_COL_NAME_ROW_ID,
+            RESERVED_COL_NAME_LAST_UPDATED_SEQUENCE_NUMBER,
+        ]
+        .contains(&name)
+    };
+    let needs_normalization = schema
+        .fields()
+        .iter()
+        .zip(batch.columns())
+        .any(|(field, column)| {
+            is_lineage_column(field.name()) && column.data_type() != &DataType::Int64
+        });
+
+    if !needs_normalization {
+        return Ok(batch);
+    }
+
+    let normalized = schema
+        .fields()
+        .iter()
+        .zip(batch.columns())
+        .map(|(field, column)| {
+            if is_lineage_column(field.name()) && column.data_type() != &DataType::Int64 {
+                Ok((
+                    Arc::new(field.as_ref().clone().with_data_type(DataType::Int64)),
+                    cast(column, &DataType::Int64)?,
+                ))
+            } else {
+                Ok((field.clone(), column.clone()))
+            }
+        })
+        .collect::<DFResult<Vec<_>>>()?;
+    let (fields, columns): (Vec<_>, Vec<_>) = normalized.into_iter().unzip();
+    let normalized_schema = Arc::new(Schema::new_with_metadata(fields, schema.metadata().clone()));
+
+    RecordBatch::try_new(normalized_schema, columns).map_err(Into::into)
 }
 
 /// Holds metadata about a file scan task that needs to be preserved
