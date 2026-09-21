@@ -560,7 +560,7 @@ dependencies = [
  "bytes-utils",
  "fastrand",
  "http 1.5.0",
- "http-body 1.1.0",
+ "http-body",
  "percent-encoding",
  "pin-project-lite",
  "tracing",
@@ -718,7 +718,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "http 1.5.0",
- "http-body 1.1.0",
+ "http-body",
  "http-body-util",
  "percent-encoding",
  "pin-project-lite",
@@ -785,9 +785,9 @@ dependencies = [
 
 [[package]]
 name = "aws-smithy-runtime"
-version = "1.14.2"
+version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3296253d3a91b3f938a3f2bcce4daebadcb4aa4228153fcec90f9d23532b4484"
+checksum = "591e0024cdf2a8de8711860f7e1d5cfbca26b800ce13793a9aa2f4f5918e6d95"
 dependencies = [
  "aws-smithy-async",
  "aws-smithy-http",
@@ -798,10 +798,8 @@ dependencies = [
  "aws-smithy-types",
  "bytes",
  "fastrand",
- "http 0.2.12",
  "http 1.5.0",
- "http-body 0.4.6",
- "http-body 1.1.0",
+ "http-body",
  "http-body-util",
  "pin-project-lite",
  "pin-utils",
@@ -811,15 +809,14 @@ dependencies = [
 
 [[package]]
 name = "aws-smithy-runtime-api"
-version = "1.16.2"
+version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d881a7b7ad179fd6611680c9de89f716fb00ab40299a9a7b8c6913e8f7511a8"
+checksum = "3fbf162725183ec0df77a9dc82ce22d9ba0b6ea7f376e8ec4f6b695727c70698"
 dependencies = [
  "aws-smithy-async",
  "aws-smithy-runtime-api-macros",
  "aws-smithy-types",
  "bytes",
- "http 0.2.12",
  "http 1.5.0",
  "pin-project-lite",
  "tokio",
@@ -851,18 +848,16 @@ dependencies = [
 
 [[package]]
 name = "aws-smithy-types"
-version = "1.6.4"
+version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b791f3ac597193fe1d08b82366986eb1f5bc31f2ac6c194c0855276116c76cd"
+checksum = "16ecf7989e381d0cbb7ca06104140d940bf38d8eb9004bd3a12d23df03e3d363"
 dependencies = [
  "base64-simd",
  "bytes",
  "bytes-utils",
  "futures-core",
- "http 0.2.12",
  "http 1.5.0",
- "http-body 0.4.6",
- "http-body 1.1.0",
+ "http-body",
  "http-body-util",
  "itoa",
  "num-integer",
@@ -2750,17 +2745,6 @@ dependencies = [
 
 [[package]]
 name = "http-body"
-version = "0.4.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ceab25649e9960c0311ea418d17bee82c0dcec1bd053b5f9a66e265a693bed2"
-dependencies = [
- "bytes",
- "http 0.2.12",
- "pin-project-lite",
-]
-
-[[package]]
-name = "http-body"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca2a8f2913ee65f60facd6a5905613afaa448497a0230cc41ce022d93290bc2c"
@@ -2778,7 +2762,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "http 1.5.0",
- "http-body 1.1.0",
+ "http-body",
  "pin-project-lite",
 ]
 
@@ -2815,7 +2799,7 @@ dependencies = [
  "futures-core",
  "h2",
  "http 1.5.0",
- "http-body 1.1.0",
+ "http-body",
  "httparse",
  "itoa",
  "pin-project-lite",
@@ -2851,7 +2835,7 @@ dependencies = [
  "futures-channel",
  "futures-util",
  "http 1.5.0",
- "http-body 1.1.0",
+ "http-body",
  "hyper",
  "ipnet",
  "libc",
@@ -2890,7 +2874,7 @@ dependencies = [
 [[package]]
 name = "iceberg"
 version = "0.10.0"
-source = "git+https://github.com/agaddis02/iceberg-rust.git?rev=1d23f32e5#1d23f32e5d681decb1d2a39cba79ef8d82a6e7d9"
+source = "git+https://github.com/agaddis02/iceberg-rust.git?rev=9f14f9254#9f14f925489f2e756d980a8f1520331586a3b682"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -2949,7 +2933,7 @@ dependencies = [
 [[package]]
 name = "iceberg-catalog-glue"
 version = "0.10.0"
-source = "git+https://github.com/agaddis02/iceberg-rust.git?rev=1d23f32e5#1d23f32e5d681decb1d2a39cba79ef8d82a6e7d9"
+source = "git+https://github.com/agaddis02/iceberg-rust.git?rev=9f14f9254#9f14f925489f2e756d980a8f1520331586a3b682"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2964,7 +2948,7 @@ dependencies = [
 [[package]]
 name = "iceberg-catalog-rest"
 version = "0.10.0"
-source = "git+https://github.com/agaddis02/iceberg-rust.git?rev=1d23f32e5#1d23f32e5d681decb1d2a39cba79ef8d82a6e7d9"
+source = "git+https://github.com/agaddis02/iceberg-rust.git?rev=9f14f9254#9f14f925489f2e756d980a8f1520331586a3b682"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -3050,7 +3034,7 @@ dependencies = [
 [[package]]
 name = "iceberg-datafusion"
 version = "0.10.0"
-source = "git+https://github.com/agaddis02/iceberg-rust.git?rev=1d23f32e5#1d23f32e5d681decb1d2a39cba79ef8d82a6e7d9"
+source = "git+https://github.com/agaddis02/iceberg-rust.git?rev=9f14f9254#9f14f925489f2e756d980a8f1520331586a3b682"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3066,7 +3050,7 @@ dependencies = [
 [[package]]
 name = "iceberg-storage-opendal"
 version = "0.10.0"
-source = "git+https://github.com/agaddis02/iceberg-rust.git?rev=1d23f32e5#1d23f32e5d681decb1d2a39cba79ef8d82a6e7d9"
+source = "git+https://github.com/agaddis02/iceberg-rust.git?rev=9f14f9254#9f14f925489f2e756d980a8f1520331586a3b682"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3814,7 +3798,7 @@ dependencies = [
  "bytes",
  "futures",
  "http 1.5.0",
- "http-body 1.1.0",
+ "http-body",
  "opendal-core",
  "reqwest 0.13.5",
 ]
@@ -4540,7 +4524,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "http 1.5.0",
- "http-body 1.1.0",
+ "http-body",
  "http-body-util",
  "hyper",
  "hyper-util",
@@ -4573,7 +4557,7 @@ dependencies = [
  "futures-core",
  "futures-util",
  "http 1.5.0",
- "http-body 1.1.0",
+ "http-body",
  "http-body-util",
  "hyper",
  "hyper-rustls",
@@ -5410,7 +5394,7 @@ dependencies = [
  "bytes",
  "futures-util",
  "http 1.5.0",
- "http-body 1.1.0",
+ "http-body",
  "pin-project-lite",
  "tower",
  "tower-layer",

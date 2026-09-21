@@ -19,13 +19,13 @@ datafusion = "54.1"
 # Local workspace members
 futures = "0.3.17"
 # branch igloo-344-apache-lineage-port (V3 row lineage + rewrite-manifests support)
-iceberg = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "1d23f32e5" }
-iceberg-catalog-glue = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "1d23f32e5" }
-iceberg-catalog-memory = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "1d23f32e5" }
-iceberg-catalog-rest = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "1d23f32e5" }
+iceberg = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "9f14f9254" }
+iceberg-catalog-glue = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "9f14f9254" }
+iceberg-catalog-memory = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "9f14f9254" }
+iceberg-catalog-rest = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "9f14f9254" }
 iceberg-compaction-core = { path = "./core" }
-iceberg-datafusion = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "1d23f32e5" }
-iceberg-storage-opendal = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "1d23f32e5", features = [
+iceberg-datafusion = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "9f14f9254" }
+iceberg-storage-opendal = { git = "https://github.com/agaddis02/iceberg-rust.git", rev = "9f14f9254", features = [
     "opendal-s3",
 ] }
 
