@@ -1,0 +1,21 @@
+Cargo.lock
+  s_02b15bea668834::t_dfe298db2d3d1d 501,547,549,562,572,574,590,597,599,615,622,624,640,647,649,666,673,675,685,715,734,796,815,841,854,2542,2647,2737,2748,2785,2801,2821,2861,2920,2935,2941,3021,3037,3707,3761,3784,3798,3856,4441,4460,4480,4510,4543,5380
+Cargo.toml
+  s_02b15bea668834::t_ed27a983ef76b3 22-25,27-28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "8eebda85ae03772f676cd13d11ad605ae55605fc",
+  "prompts": {},
+  "sessions": {
+    "s_02b15bea668834": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_f92f21d13ffetYGV5fjgy69rkx",
+        "model": "gemini-3.7-flash"
+      },
+      "human_author": "Adam Gaddis <adamtyler@cloudflare.com>"
+    }
+  }
+}
