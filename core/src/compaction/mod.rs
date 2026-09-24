@@ -2342,6 +2342,221 @@ mod tests {
         assert_v3_row_lineage_preserved(true).await;
     }
 
+    /// Schema for a table with a genuine user-defined column literally named
+    /// `_row_id` -- field id 3 here, a real schema field, not the reserved
+    /// sentinel (`RESERVED_FIELD_ID_ROW_ID` = `i32::MAX - 107`) that V3 row
+    /// lineage uses for the same name. Column type is `String`, deliberately
+    /// not `Int64`, so a name-only match in `normalize_row_lineage_columns`
+    /// would try (and fail) to cast it.
+    fn schema_with_colliding_row_id_column() -> Schema {
+        Schema::builder()
+            .with_fields(vec![
+                NestedField::required(1, "id", Type::Primitive(PrimitiveType::Int)).into(),
+                NestedField::required(2, "name", Type::Primitive(PrimitiveType::String)).into(),
+                NestedField::required(
+                    3,
+                    RESERVED_COL_NAME_ROW_ID,
+                    Type::Primitive(PrimitiveType::String),
+                )
+                .into(),
+            ])
+            .build()
+            .unwrap()
+    }
+
+    fn create_test_record_batch_with_colliding_row_id(iceberg_schema: &Schema) -> RecordBatch {
+        let id_array = Int32Array::from(vec![1, 2, 3]);
+        let name_array = StringArray::from(vec!["Alice", "Bob", "Charlie"]);
+        // A genuine user-defined `_row_id` value, unrelated to row lineage.
+        let user_row_id_array = StringArray::from(vec!["user-a", "user-b", "user-c"]);
+
+        let arrow_schema = schema_to_arrow_schema(iceberg_schema).unwrap();
+
+        RecordBatch::try_new(Arc::new(arrow_schema), vec![
+            Arc::new(id_array),
+            Arc::new(name_array),
+            Arc::new(user_row_id_array),
+        ])
+        .unwrap()
+    }
+
+    async fn create_test_env_with_colliding_row_id_column() -> TestEnv {
+        let temp_dir = TempDir::new().unwrap();
+        let warehouse_location = temp_dir.path().to_str().unwrap().to_owned();
+        let catalog = Arc::new(
+            MemoryCatalogBuilder::default()
+                .load(
+                    "memory",
+                    HashMap::from([(
+                        MEMORY_CATALOG_WAREHOUSE.to_owned(),
+                        warehouse_location.clone(),
+                    )]),
+                )
+                .await
+                .unwrap(),
+        );
+
+        let namespace_ident = NamespaceIdent::new("test_namespace".into());
+        create_namespace(catalog.as_ref(), &namespace_ident).await;
+
+        let table_ident = TableIdent::new(namespace_ident.clone(), "test_table".into());
+        let _ = catalog
+            .create_table(
+                &table_ident.namespace,
+                TableCreation::builder()
+                    .name(table_ident.name().into())
+                    .schema(schema_with_colliding_row_id_column())
+                    .build(),
+            )
+            .await
+            .unwrap();
+
+        let table = catalog.load_table(&table_ident).await.unwrap();
+
+        TestEnv {
+            temp_dir,
+            warehouse_location,
+            catalog,
+            table_ident,
+            table,
+        }
+    }
+
+    async fn write_colliding_row_id_files(
+        table: &Table,
+        warehouse_location: &str,
+        suffix_prefix: &str,
+        count: usize,
+    ) -> Vec<DataFile> {
+        let mut all = Vec::new();
+        for i in 0..count {
+            let mut writer = build_simple_data_writer(
+                table,
+                warehouse_location.to_owned(),
+                &format!("{suffix_prefix}_{i}"),
+            )
+            .await;
+            let batch = create_test_record_batch_with_colliding_row_id(
+                &schema_with_colliding_row_id_column(),
+            );
+            writer.write(batch).await.unwrap();
+            let files = writer.close().await.unwrap();
+            all.extend(files);
+        }
+        all
+    }
+
+    /// A V2 table with a genuine user-defined column literally named `_row_id`
+    /// (field id 3, type `String`) must compact normally: the projection-field-id
+    /// mapping in `IcebergFileTaskScan::new` must resolve `_row_id` via the
+    /// table's real schema (field id 3), not the reserved V3 metadata sentinel,
+    /// and `normalize_row_lineage_columns` must not try to cast it to `Int64`.
+    /// Regression test for the bug flagged in review of PR #192: matching by
+    /// name alone (with no V3/field-id check) broke this exact case.
+    #[tokio::test]
+    async fn test_v2_compaction_preserves_user_defined_row_id_column() {
+        let env = create_test_env_with_colliding_row_id_column().await;
+
+        let data_files =
+            write_colliding_row_id_files(&env.table, &env.warehouse_location, "collide", 2).await;
+        let initial_file_count = data_files.len();
+        let _table = append_and_commit(&env.table, env.catalog.as_ref(), data_files).await;
+
+        let compaction = create_default_compaction(env.catalog.clone(), env.table_ident.clone());
+        let result = compaction.compact().await.unwrap().unwrap();
+        assert_compaction_stats(&result.stats, initial_file_count, false);
+
+        let final_table = result.table.as_ref().unwrap();
+
+        // Read the compacted output files directly rather than through
+        // `Table::scan()`: `TableScan::select` resolves `_row_id` by name
+        // to the reserved metadata column regardless of the table's actual
+        // schema, which is a separate, out-of-scope behavior in plain
+        // `iceberg-rust` itself, not something this PR's scan code controls.
+        // Reading the raw file isolates exactly what this fix is responsible
+        // for: the field id BergLoom's own writer assigns to the column, and
+        // the type it round-trips.
+        let mut rows = Vec::new();
+        for output_file in &result.data_files {
+            let input = final_table
+                .file_io()
+                .new_input(output_file.file_path())
+                .unwrap();
+            let content = input.read().await.unwrap();
+            let builder = ParquetRecordBatchReaderBuilder::try_new(content).unwrap();
+            let schema = builder.schema();
+            let id_index = schema.index_of("id").unwrap();
+            let row_id_index = schema.index_of(RESERVED_COL_NAME_ROW_ID).unwrap();
+            assert_eq!(
+                schema.field(row_id_index).metadata()[PARQUET_FIELD_ID_META_KEY],
+                "3",
+                "user-defined _row_id column must keep its real field id, not the reserved \
+                 V3 row-lineage sentinel"
+            );
+            assert_eq!(
+                schema.field(row_id_index).data_type(),
+                &DataType::Utf8,
+                "user-defined _row_id column must keep its real type"
+            );
+
+            for batch in builder.build().unwrap() {
+                let batch = batch.unwrap();
+                let ids = batch
+                    .column(id_index)
+                    .as_any()
+                    .downcast_ref::<Int32Array>()
+                    .unwrap();
+                let row_ids = batch
+                    .column(row_id_index)
+                    .as_any()
+                    .downcast_ref::<StringArray>()
+                    .unwrap();
+                rows.extend(
+                    (0..batch.num_rows())
+                        .map(|row| (ids.value(row), row_ids.value(row).to_owned())),
+                );
+            }
+        }
+        rows.sort_unstable();
+        assert_eq!(rows, vec![
+            (1, "user-a".to_owned()),
+            (1, "user-a".to_owned()),
+            (2, "user-b".to_owned()),
+            (2, "user-b".to_owned()),
+            (3, "user-c".to_owned()),
+            (3, "user-c".to_owned()),
+        ]);
+    }
+
+    /// A V3 table whose schema collides a genuine user-defined column with the
+    /// reserved `_row_id` lineage column name must fail compaction with a clear
+    /// error naming the collision, not a confusing internal error or silent data
+    /// corruption. Regression test for the "V3 tables with such a column now
+    /// fail with multiple fields for name `_row_id`" case flagged in review of PR
+    /// #192.
+    #[tokio::test]
+    async fn test_v3_compaction_errors_on_colliding_row_id_column() {
+        let env = create_test_env_with_colliding_row_id_column().await;
+
+        let data_files =
+            write_colliding_row_id_files(&env.table, &env.warehouse_location, "collide", 2).await;
+        let table = append_and_commit(&env.table, env.catalog.as_ref(), data_files).await;
+        let _table = configure_v3_lineage_table(&table, env.catalog.as_ref(), false).await;
+
+        let compaction = create_default_compaction(env.catalog.clone(), env.table_ident.clone());
+        let message = match compaction.compact().await {
+            Err(err) => err.to_string(),
+            Ok(result) => panic!(
+                "compaction must reject a V3 table with a colliding _row_id column, got: {:?}",
+                result.map(|r| r.stats)
+            ),
+        };
+        assert!(
+            message.contains("_row_id") && message.contains("multiple fields"),
+            "error must clearly name the _row_id collision, got: {message}"
+        );
+    }
+
     #[tokio::test]
     async fn test_small_files_compaction_with_validation() {
         let env = create_test_env().await;

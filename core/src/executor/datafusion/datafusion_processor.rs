@@ -128,6 +128,7 @@ impl DatafusionProcessor {
                 &datafusion_task_ctx.data_file_table_name(),
                 datafusion_task_ctx.need_seq_num(),
                 datafusion_task_ctx.need_file_path_and_pos(),
+                datafusion_task_ctx.format_version >= FormatVersion::V3,
             )?;
         }
 
@@ -415,6 +416,7 @@ impl DatafusionTableRegister {
         table_name: &str,
         need_seq_num: bool,
         need_file_path_and_pos: bool,
+        is_v3_format: bool,
     ) -> Result<()> {
         self.register_table_provider_impl(
             schema,
@@ -423,6 +425,7 @@ impl DatafusionTableRegister {
             DataContentType::Data,
             need_seq_num,
             need_file_path_and_pos,
+            is_v3_format,
         )
     }
 
@@ -433,6 +436,8 @@ impl DatafusionTableRegister {
         table_name: &str,
         file_type: DataContentType,
     ) -> Result<()> {
+        // The reserved-lineage-column special-casing in `IcebergFileTaskScan` only
+        // triggers for `DataContentType::Data`, so `is_v3_format` is irrelevant here.
         self.register_table_provider_impl(
             schema,
             file_scan_tasks,
@@ -440,9 +445,11 @@ impl DatafusionTableRegister {
             file_type,
             false,
             false,
+            false,
         )
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn register_table_provider_impl(
         &self,
         schema: &Schema,
@@ -451,6 +458,7 @@ impl DatafusionTableRegister {
         file_type: DataContentType,
         need_seq_num: bool,
         need_file_path_and_pos: bool,
+        is_v3_format: bool,
     ) -> Result<()> {
         let schema = schema_to_arrow_schema(schema)?;
         let data_file_table_provider = IcebergFileScanTaskTableProvider::new(
@@ -460,6 +468,7 @@ impl DatafusionTableRegister {
             self.file_io.clone(),
             need_seq_num,
             need_file_path_and_pos,
+            is_v3_format,
             self.executor_parallelism,
             self.max_record_batch_rows,
             self.is_prefetch_enabled,
@@ -713,6 +722,7 @@ pub struct DataFusionTaskContext {
     pub(crate) table_prefix: String,
     pub(crate) sort_order: Option<TableSortOrder>,
     pub(crate) partition_spec: Option<PartitionSpecRef>,
+    pub(crate) format_version: FormatVersion,
 }
 
 pub struct DataFusionTaskContextBuilder {
@@ -961,6 +971,7 @@ impl DataFusionTaskContextBuilder {
             table_prefix: self.table_prefix,
             sort_order: self.sort_order,
             partition_spec: self.partition_spec,
+            format_version: self.format_version,
         })
     }
 

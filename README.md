@@ -18,8 +18,6 @@
 
 The core crate is [`iceberg-compaction-core`](./core/). Catalog and storage access use the pinned [RisingWave fork of `iceberg-rust`](https://github.com/risingwavelabs/iceberg-rust); the repository includes local-filesystem and REST-catalog/S3 examples. See [Cargo.toml](./Cargo.toml) for the exact dependency revisions and enabled storage features.
 
-AI assisted with research and drafting.
-
 ## Quick start
 
 Install Rust with [rustup](https://rustup.rs/). Use the nightly toolchain pinned in [`rust-toolchain.toml`](./rust-toolchain.toml).
