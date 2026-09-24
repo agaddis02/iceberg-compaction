@@ -49,7 +49,7 @@ services:
       - "8181:8181"
 
   minio:
-    image: quay.io/minio/minio:RELEASE.2024-03-07T00-43-48Z
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z
     environment:
       - MINIO_ROOT_USER=admin
       - MINIO_ROOT_PASSWORD=password
@@ -64,7 +64,7 @@ services:
   mc:
     depends_on:
       - minio
-    image: quay.io/minio/mc:RELEASE.2024-03-07T00-31-49Z
+    image: pgsty/mc:RELEASE.2026-09-16T00-00-00Z
     environment:
       - AWS_ACCESS_KEY_ID=admin
       - AWS_SECRET_ACCESS_KEY=password
@@ -77,6 +77,6 @@ services:
       - NO_PROXY=localhost,127.0.0.1,minio,rest,mc,.minio
       - no_proxy=localhost,127.0.0.1,minio,rest,mc,.minio
     entrypoint: >
-      /bin/sh -c " until (/usr/bin/mc config host add minio http://minio:9000 admin password) do echo '...waiting...' && sleep 1; done; /usr/bin/mc rm -r --force minio/icebergdata; /usr/bin/mc mb minio/icebergdata; /usr/bin/mc policy set public minio/icebergdata; tail -f /dev/null "
+      /bin/sh -c " until (/usr/bin/mc alias set minio http://minio:9000 admin password) do echo '...waiting...' && sleep 1; done; /usr/bin/mc rm -r --force minio/icebergdata; /usr/bin/mc mb minio/icebergdata; /usr/bin/mc policy set public minio/icebergdata; tail -f /dev/null "
     networks:
       rest_bridge:
