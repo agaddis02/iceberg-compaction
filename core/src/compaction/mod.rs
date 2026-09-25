@@ -2343,11 +2343,10 @@ mod tests {
     }
 
     /// Schema for a table with a genuine user-defined column literally named
-    /// `_row_id` -- field id 3 here, a real schema field, not the reserved
-    /// sentinel (`RESERVED_FIELD_ID_ROW_ID` = `i32::MAX - 107`) that V3 row
-    /// lineage uses for the same name. Column type is `String`, deliberately
-    /// not `Int64`, so a name-only match in `normalize_row_lineage_columns`
-    /// would try (and fail) to cast it.
+    /// `_row_id`: field id 3, a real schema field rather than the reserved
+    /// sentinel (`RESERVED_FIELD_ID_ROW_ID`) that V3 row lineage uses for the
+    /// same name. The column is `String`, not `Int64`, so a match on name alone
+    /// would attempt an invalid cast.
     fn schema_with_colliding_row_id_column() -> Schema {
         Schema::builder()
             .with_fields(vec![
@@ -2451,8 +2450,6 @@ mod tests {
     /// mapping in `IcebergFileTaskScan::new` must resolve `_row_id` via the
     /// table's real schema (field id 3), not the reserved V3 metadata sentinel,
     /// and `normalize_row_lineage_columns` must not try to cast it to `Int64`.
-    /// Regression test for the bug flagged in review of PR #192: matching by
-    /// name alone (with no V3/field-id check) broke this exact case.
     #[tokio::test]
     async fn test_v2_compaction_preserves_user_defined_row_id_column() {
         let env = create_test_env_with_colliding_row_id_column().await;
@@ -2469,13 +2466,11 @@ mod tests {
         let final_table = result.table.as_ref().unwrap();
 
         // Read the compacted output files directly rather than through
-        // `Table::scan()`: `TableScan::select` resolves `_row_id` by name
-        // to the reserved metadata column regardless of the table's actual
-        // schema, which is a separate, out-of-scope behavior in plain
-        // `iceberg-rust` itself, not something this PR's scan code controls.
-        // Reading the raw file isolates exactly what this fix is responsible
-        // for: the field id BergLoom's own writer assigns to the column, and
-        // the type it round-trips.
+        // `Table::scan()`: `TableScan::select` resolves `_row_id` by name to the
+        // reserved metadata column regardless of the table's actual schema, which
+        // is separate upstream `iceberg-rust` behavior. Reading the raw file
+        // isolates what the writer here controls: the field id assigned to the
+        // column and the type it round-trips.
         let mut rows = Vec::new();
         for output_file in &result.data_files {
             let input = final_table
@@ -2531,9 +2526,7 @@ mod tests {
     /// A V3 table whose schema collides a genuine user-defined column with the
     /// reserved `_row_id` lineage column name must fail compaction with a clear
     /// error naming the collision, not a confusing internal error or silent data
-    /// corruption. Regression test for the "V3 tables with such a column now
-    /// fail with multiple fields for name `_row_id`" case flagged in review of PR
-    /// #192.
+    /// corruption.
     #[tokio::test]
     async fn test_v3_compaction_errors_on_colliding_row_id_column() {
         let env = create_test_env_with_colliding_row_id_column().await;
